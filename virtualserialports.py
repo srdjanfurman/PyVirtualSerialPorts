@@ -19,12 +19,12 @@
 # SOFTWARE.
 
 import argparse
-from contextlib import ExitStack
 import os
 import pty
-from selectors import DefaultSelector as Selector, EVENT_READ
 import sys
 import tty
+from contextlib import ExitStack
+from selectors import DefaultSelector as Selector, EVENT_READ
 
 
 def run(num_ports, loopback=False, debug=False):
@@ -33,6 +33,8 @@ def run(num_ports, loopback=False, debug=False):
 
     master_files = {}  # Dict of master fd to master file object.
     slave_names = {}  # Dict of master fd to slave name.
+    port_data = open('./port_data.txt', 'w')  # Record opened ports.
+
     for _ in range(num_ports):
         master_fd, slave_fd = pty.openpty()
         tty.setraw(master_fd)
@@ -40,7 +42,10 @@ def run(num_ports, loopback=False, debug=False):
         slave_name = os.ttyname(slave_fd)
         master_files[master_fd] = open(master_fd, 'r+b', buffering=0)
         slave_names[master_fd] = slave_name
-        print(slave_name)
+        print(f'Port: {slave_names[master_fd]}')
+        port_data.write(f'{slave_names[master_fd]}\n')
+
+    port_data.close()
 
     with Selector() as selector, ExitStack() as stack:
         # Context manage all the master file objects, and add to selector.
@@ -67,9 +72,9 @@ def run(num_ports, loopback=False, debug=False):
 def main():
     parser = argparse.ArgumentParser(
         description='Create a hub of virtual serial ports, which will stay '
-        'available until the program exits. Once set up, the port names be '
-        'printed to stdout, one per line.'
-    )
+                    'available until the program exits. Once set up, the port names be '
+                    'printed to stdout, one per line.')
+
     parser.add_argument('num_ports', type=int,
                         help='number of ports to create')
     parser.add_argument('-l', '--loopback', action='store_true',
