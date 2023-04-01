@@ -8,3 +8,6 @@ dist/
 
 # PyCharm
 .idea/
+
+# Generated
+port_data.txt
